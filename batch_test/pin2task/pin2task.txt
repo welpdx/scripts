@@ -1,0 +1,1 @@
+powershell -noprofile -ExecutionPolicy Bypass -file "C:\Users\Administrator\Desktop\PinToTaskBar1903.ps1" "C:\Windows\Notepad.exe" PIN

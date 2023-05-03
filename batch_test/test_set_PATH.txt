@@ -1,0 +1,3 @@
+setx PATH "C:\PDF\scrcpy;%PATH%"
+set PATH "C:\PDF\scrcpy;%PATH%"
+# https://www.opentechguides.com/how-to/article/windows-10/113/windows-10-set-path.html
