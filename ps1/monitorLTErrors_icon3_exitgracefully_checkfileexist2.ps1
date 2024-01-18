@@ -23,7 +23,7 @@ $checkbox.Location = New-Object System.Drawing.Point(10, 10)
 $checkbox.Text = "Auto-Check for File"
 $Form.Controls.Add($checkbox)
 
-# Create a textbox to display the file content or the message
+# Create a textbox to display the file content
 $outputBox = New-Object System.Windows.Forms.TextBox
 $outputBox.Location = New-Object System.Drawing.Point(10, 40)
 $outputBox.Size = New-Object System.Drawing.Size(($FormWidth - 30), ($FormHeight - 100))
@@ -32,14 +32,6 @@ $outputBox.ReadOnly = $true
 $outputBox.Font = New-Object System.Drawing.Font("Calibri", 11, [System.Drawing.FontStyle]::Bold)
 $outputBox.ForeColor = [System.Drawing.Color]::Green
 $outputBox.ScrollBars = "Vertical"
-
-# Set initial text of the outputBox
-if (Test-Path $filePath) {
-    $outputBox.Text = Get-Content $filePath | Out-String
-} else {
-    $outputBox.Text = "C:\Windows\LTSvc\LTErrors.txt isn't created yet. Please wait... Checking again in " + ($timer.Interval / 1000) + " seconds."
-}
-
 $Form.Controls.Add($outputBox)
 
 # Function to scroll to the bottom of the TextBox
@@ -53,8 +45,6 @@ $timer.add_Tick({
     if (Test-Path $filePath) {
         $outputBox.Text = Get-Content $filePath | Out-String
         ScrollToBottom
-    } else {
-        $outputBox.Text = "C:\Windows\LTSvc\LTErrors.txt isn't created yet. Please wait... Checking again in " + ($timer.Interval / 1000) + " seconds."
     }
 })
 
@@ -69,6 +59,7 @@ $checkbox.add_CheckedChanged({
 
 # Add the controls to the form
 $Form.Controls.Add($checkbox)
+$Form.Controls.Add($outputBox)
 
 # Event handler for Form closing
 $Form.add_FormClosing({

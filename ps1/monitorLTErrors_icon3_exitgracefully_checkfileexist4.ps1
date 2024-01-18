@@ -16,6 +16,7 @@ $filePath = "C:\Windows\LTSvc\LTErrors.txt"
 # Create a timer for checking file existence
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 60000  # 60 seconds
+$timerCountdown = 60
 
 # Create a checkbox to control the timer
 $checkbox = New-Object System.Windows.Forms.CheckBox
@@ -53,9 +54,17 @@ $timer.add_Tick({
     if (Test-Path $filePath) {
         $outputBox.Text = Get-Content $filePath | Out-String
         ScrollToBottom
+        
+        # Reduce the timer interval to 5 seconds after the file is found
+        $timer.Interval = 5000
+        $timerCountdown = 5
     } else {
-        $outputBox.Text = "C:\Windows\LTSvc\LTErrors.txt isn't created yet. Please wait... Checking again in " + ($timer.Interval / 1000) + " seconds."
+        $outputBox.Text = "C:\Windows\LTSvc\LTErrors.txt isn't created yet. Please wait... Checking again in " + $timerCountdown + " seconds."
+        $timerCountdown--
     }
+    
+    # Update the form's title bar with the countdown
+    $Form.Text = "Check in " + $timerCountdown + " seconds"
 })
 
 # Event handler for checkbox state change
