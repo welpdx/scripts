@@ -38,6 +38,17 @@ param(
     [string]$Destination
 )
 
+# Normalize ActionType so input is not case sensitive (e.g. "move" -> "Move")
+if ($ActionType) {
+    $lower = $ActionType.ToLowerInvariant()
+    switch ($lower) {
+        'audit'  { $ActionType = 'Audit';  break }
+        'delete' { $ActionType = 'Delete'; break }
+        'move'   { $ActionType = 'Move';   break }
+        default  { throw [System.ArgumentException]::new("Invalid -ActionType: $ActionType. Allowed values: Audit, Delete, Move.") }
+    }
+}
+
 # Start logging: create daily log in ProgramData (format: WinInstallersCleaup_log_yymmdd.txt)
 $LogFile = "C:\ProgramData\WinInstallersCleaup_log_$((Get-Date).ToString('yyMMdd')).txt"
 try {
