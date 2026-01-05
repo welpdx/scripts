@@ -15,6 +15,8 @@
   
     -Destination
         Required if ActionType is Move. Orhpaned files are moved to this directory. Target directory must exist.
+    -exProd
+        Comma-separated list of product name tokens to exclude from removal. Partial matches work.
 
 .EXAMPLE
 
@@ -27,6 +29,11 @@
     Move orphaned files:
     .\Cleanup-WindowsInstallerDirectory.ps1 -ActionType Move -Destination "E:\backup"
 
+    Include only files related to certain products (exclusive mode):
+    .\Cleanup-WindowsInstallerDirectory.ps1 -ActionType Audit -exProd "adobe,wireshark"
+
+    .\Cleanup-WindowsInstallerDirectory.ps1 -ActionType Audit -exProd adobe -exProd wireshark
+
 #>
 
 #Requires -RunAsAdministrator
@@ -34,9 +41,11 @@
 param(
     [ValidateSet("Audit", "Delete", "Move")]
     [string]$ActionType = "Audit",
-    
-    [string]$Destination
+    [string]$Destination,
+    [string[]]$exProd
 )
+
+Write-Output "ActionType: $ActionType"
 
 # Normalize ActionType so input is not case sensitive (e.g. "move" -> "Move")
 if ($ActionType) {
@@ -64,11 +73,16 @@ $excludedProducts = @(
     #'ExampleProduct'
 )
 
-$exclusiveProducts = @(
-    # Add product names here to exclusively target them for removal
-    'Adobe'
-)
-
+$exclusiveProducts = @()
+if ($exProd) {
+    foreach ($entry in @($exProd)) {
+        foreach ($token in ($entry -split '\s*,\s*')) {
+            $token = $token.Trim()
+            if ($token) { $exclusiveProducts += $token.ToLowerInvariant() }
+        }
+    }
+    $exclusiveProducts = $exclusiveProducts | Select-Object -Unique
+}
 # Notify when exclusive mode is active
 if ($exclusiveProducts.Count -gt 0) {
     Write-Output "Exclusive mode enabled: only files matching: $($exclusiveProducts -join ', ') will be moved/deleted"
