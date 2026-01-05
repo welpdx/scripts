@@ -38,9 +38,24 @@ param(
     [string]$Destination
 )
 
+# Start logging: create daily log in ProgramData (format: WinInstallersCleaup_log_yymmdd.txt)
+$LogFile = "C:\ProgramData\WinInstallersCleaup_log_$((Get-Date).ToString('yyMMdd')).txt"
+try {
+    Start-Transcript -Path $LogFile -Force -Append
+    Write-Output "Transcript started: $LogFile"
+}
+catch {
+    Write-Warning "Failed to start transcript logging to $LogFile. $_"
+}
+
 # Products to be excluded based on product name (partial match works)
 $excludedProducts = @(
-    'ExampleProduct'
+    #'ExampleProduct'
+)
+
+$exclusiveProducts = @(
+    # Add product names here to exclusively target them for removal
+    'Adobe'
 )
 
 function Get-FileMetaData {
@@ -272,4 +287,12 @@ if ($totalSize -gt 0) {
 }
 else {
     Write-Output "No space would be saved."
+}
+
+# Stop transcript if started
+try {
+    Stop-Transcript | Out-Null
+    Write-Output "Transcript stopped: $LogFile"
+} catch {
+    # No transcript to stop or error occurred
 }
