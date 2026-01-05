@@ -58,6 +58,11 @@ $exclusiveProducts = @(
     'Adobe'
 )
 
+# Notify when exclusive mode is active
+if ($exclusiveProducts.Count -gt 0) {
+    Write-Output "Exclusive mode enabled: only files matching: $($exclusiveProducts -join ', ') will be moved/deleted"
+}
+
 function Get-FileMetaData {
     [CmdletBinding()]
     param (
@@ -235,6 +240,33 @@ foreach ($file in $files) {
     else {
         $metaData = $file | Get-FileMetaData -Signature | Select-Object Authors, Title, Subject, SignatureCertificateSubject
         $excludedFile = $false
+
+        # Choose a readable subject: prefer Subject, fallback to SignatureCertificateSubject
+        <#
+                $subject = $metaData.Subject
+        write-output "subject before check: $subject"
+        if ([string]::IsNullOrWhiteSpace($subject)) {
+            $subject = $metaData.SignatureCertificateSubject
+        }
+        #if ($subject) { $subject = $subject.Trim() }
+        #>
+        $subject = $metaData.Subject
+        if ([string]::IsNullOrWhiteSpace($subject)) {
+            $subject = $metaData.SignatureCertificateSubject
+        }
+        if ($subject) { 
+            $subject = $subject.Trim()
+            # If the subject is a certificate DN (e.g. "CN=Name, OU=..."), extract the CN for readability
+            if ($subject -match 'CN=([^,]+)') {
+                $subject = $matches[1].Trim()
+            }
+            else {
+                # fallback to the first token before a comma if present
+                if ($subject -match '^([^,]+)') { $subject = $matches[1].Trim() }
+            }
+        }
+
+        # First apply exclusion filters
         foreach ($item in $excludedProducts) {
             if (
                 ($metaData.Authors -like "*$item*") -or
@@ -245,25 +277,53 @@ foreach ($file in $files) {
                 $ExcludedFiles.Add([PSCustomObject]@{
                     FileName = $fullname
                     Reason   = "Matched exclusion filter: $item"
+                    productSubject = $subject
                 })
                 $excludedFile = $true
                 break
             }
         }
 
+        # If exclusiveProducts is set, only allow files that match an exclusive entry
+        if (-not $excludedFile -and $exclusiveProducts.Count -gt 0) {
+            $matchedExclusive = $false
+            foreach ($ex in $exclusiveProducts) {
+                if (
+                    ($metaData.Authors -like "*$ex*") -or
+                    ($metaData.Title -like "*$ex*") -or
+                    ($metaData.Subject -like "*$ex*") -or
+                    ($metaData.SignatureCertificateSubject -like "*$ex*")
+                ) {
+                    $matchedExclusive = $true
+                    break
+                }
+            }
+            if (-not $matchedExclusive) {
+                $ExcludedFiles.Add([PSCustomObject]@{
+                    FileName = $fullname
+                    Reason   = "Did not match any exclusive filter: $($exclusiveProducts -join ', ')"
+                    productSubject = $subject
+                })
+                $excludedFile = $true
+            }
+        }
+
         if (-not ($excludedFile)) {
             $totalSize += $fileSize
+            #verbose
+            #Write-Output $subject | Format-Table -AutoSize
+            #Write-Output "Subject after check: $subject"
             switch ($ActionType) {
                 "Audit" {
-                    Write-Output "AUDIT MODE: $fullname would be moved/deleted"
+                    Write-Output "AUDIT MODE: $fullname would be moved/deleted. Product: $($subject)"
                 }    
                 "Delete" {
-                    Write-Output "Deleting $fullname"
+                    Write-Output "Deleting $fullname. Product: $($subject)"
                     Remove-Item -Path $fullname -Force
                 }
                 "Move" {
-                    Write-Output "Moving $fullname"
-                    Move-Item -Path $fullname -Destination "$destination" -Force
+                    Write-Output "Moving $fullname. Product: $($subject)"
+                    Move-Item -Path $fullname -Destination $Destination -Force
                 }
             }
         }
