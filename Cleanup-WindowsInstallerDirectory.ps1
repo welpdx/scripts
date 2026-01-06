@@ -40,7 +40,7 @@
 
 param(
     [ValidateSet("Audit", "Delete", "Move")]
-    [string]$ActionType = "Audit",
+    [string]$ActionType,
     [string]$Destination,
     [string[]]$exProd
 )
