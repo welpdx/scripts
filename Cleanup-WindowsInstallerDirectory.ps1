@@ -40,22 +40,23 @@
 
 param(
     [ValidateSet("Audit", "Delete", "Move")]
-    [string]$ActionType,
+    [string]$ActionType = "Audit",
     [string]$Destination,
     [string[]]$exProd
 )
 
 Write-Output "ActionType: $ActionType"
 
-# Normalize ActionType so input is not case sensitive (e.g. "move" -> "Move")
-if ($ActionType) {
-    $lower = $ActionType.ToLowerInvariant()
-    switch ($lower) {
-        'audit'  { $ActionType = 'Audit';  break }
-        'delete' { $ActionType = 'Delete'; break }
-        'move'   { $ActionType = 'Move';   break }
-        default  { throw [System.ArgumentException]::new("Invalid -ActionType: $ActionType. Allowed values: Audit, Delete, Move.") }
-    }
+# Require ActionType and normalize case-insensitively
+if (-not $ActionType) {
+    throw [System.ArgumentException]::new("The -ActionType parameter is required. Allowed values: Audit, Delete, Move.")
+}
+
+switch ($ActionType.ToLowerInvariant()) {
+    'audit'  { $ActionType = 'Audit'; break }
+    'delete' { $ActionType = 'Delete'; break }
+    'move'   { $ActionType = 'Move'; break }
+    default  { throw [System.ArgumentException]::new("Invalid -ActionType: $ActionType. Allowed values: Audit, Delete, Move.") }
 }
 
 # Start logging: create daily log in ProgramData (format: WinInstallersCleaup_log_yymmdd.txt)
@@ -226,24 +227,25 @@ $InstalledPatches = foreach ($productCode in $products) {
     }
 }
 
-# Display all installed products and patches if Audit mode.
+# Display all installed products and patches
+Write-Output "Installed Products:"
+if ($InstallerProducts) {
+    Write-Output $InstalledProducts | Sort-Object -Property ProductName | Format-Table -AutoSize | Out-String -Width 1000
+    Write-Output ""
+}
+else {
+    Write-Output "No installed products`n"
+}
+Write-Output "Installed Patches:"
+if ($InstalledPatches) {
+    Write-Output $InstalledPatches | Sort-Object -Property ProductName | Format-Table -AutoSize | Out-String -Width 1000
+    Write-Output ""
+}
+else {
+    Write-Output "No installed patches`n"
+}
+
 if ($ActionType -eq "Audit") {
-    Write-Output "Installed Products:"
-    if ($InstallerProducts) {
-        Write-Output $InstalledProducts | Sort-Object -Property ProductName | Format-Table -AutoSize | Out-String -Width 1000
-        Write-Output ""
-    }
-    else {
-        Write-Output "No installed products`n"
-    }
-    Write-Output "Installed Patches:"
-    if ($InstalledPatches) {
-        Write-Output $InstalledPatches | Sort-Object -Property ProductName | Format-Table -AutoSize | Out-String -Width 1000
-        Write-Output ""
-    }
-    else {
-        Write-Output "No installed patches`n"
-    }
     Write-Output "############# AUDIT MODE #############"
 }
 
