@@ -1958,9 +1958,9 @@ write-host "  Report file      : $varReportPath" -fo Cyan
 if ($CSTranscriptOn) {
     try {Stop-Transcript | out-null} catch {}
 }
-
+pause
 #exit code reflects health (0 = clean, 1 = failures recorded) so any wrapper/automation can flag problems
-if ($varFailCount -gt 0) {
+if ($varFailCount -gt 0) { 
     exit 1
 } else {
     exit 0
